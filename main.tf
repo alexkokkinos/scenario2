@@ -25,14 +25,6 @@ variable "instance_count" {
     default = "2"
 }
 
-variable "ssh_public_key" {
-    type = "string"
-}
-
-variable "client_public_ip_address" {
-    type = "list"
-}
-
 #### VPC
 resource "aws_vpc" "vpc" {
 	cidr_block = "10.0.0.0/16"
@@ -96,15 +88,6 @@ resource "aws_security_group_rule" "egress_all" {
     protocol = -1
     type = "egress"
     cidr_blocks = ["0.0.0.0/0"]
-    security_group_id = "${aws_security_group.helloworld.id}"
-}
-
-resource "aws_security_group_rule" "ingress_ssh" {
-    from_port = 22
-    to_port = 22
-    protocol = "tcp"
-    type = "ingress"
-    cidr_blocks = "${var.client_public_ip_address}"
     security_group_id = "${aws_security_group.helloworld.id}"
 }
 
@@ -189,18 +172,14 @@ resource "aws_instance" "helloworld" {
     vpc_security_group_ids = ["${aws_security_group.helloworld.id}"]
     iam_instance_profile = "${aws_iam_instance_profile.helloworld.name}"
     user_data = "${data.template_file.user_data.rendered}"
-    key_name = "${aws_key_pair.helloworld.key_name}"
     associate_public_ip_address = true
     tags {
       Name = "helloworld-${count.index}"
     }
 }
 
-#### Misc
-resource "aws_key_pair" "helloworld" {
-    key_name_prefix = "hello-world"
-    public_key = "${var.ssh_public_key}"
-}
+#### Output
+
 output "Open CloudWatch and wait/refresh to see results:" {
     value = "https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#logStream:group=hello_world_docker_logs"
 }
