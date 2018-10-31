@@ -8,6 +8,19 @@ variable "instance_count" {
     type = "string"
 }
 
+variable "ssh_public_key" {
+    type = "string"
+}
+
+variable "client_public_ip_address" {
+    type = "list"
+}
+
+resource "aws_key_pair" "helloworld" {
+    key_name_prefix = "hello-world"
+    public_key = "${var.ssh_public_key}"
+}
+
 provider "aws" {
     access_key = "${var.access_key}"
     secret_key = "${var.secret_key}"
@@ -78,6 +91,15 @@ resource "aws_security_group_rule" "egress_all" {
     security_group_id = "${aws_security_group.helloworld.id}"
 }
 
+resource "aws_security_group_rule" "ingress_ssh" {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    type = "ingress"
+    cidr_blocks = "${var.client_public_ip_address}"
+    security_group_id = "${aws_security_group.helloworld.id}"
+}
+
 resource "aws_cloudwatch_log_group" "helloworld" {
     name = "hello_world_docker_logs"
     retention_in_days = "7"
@@ -103,10 +125,13 @@ resource "aws_iam_policy" "helloworld" {
         {
             "Sid": "AllowCloudWatchLogsDockerHelloWorld",
             "Effect": "Allow",
-            "Action": "logs:PutLogEvents",
+            "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
             "Resource": [
-                "${aws_cloudwatch_log_group.helloworld.arn}",
-                "arn:aws:logs:*:*:log-group:*:*:*"
+                "arn:aws:logs:us-east-1:882214212742:log-group:hello_world_docker_logs",
+                "arn:aws:logs:us-east-1:882214212742:log-group:hello_world_docker_logs:*:*"
             ]
         }
     ]
@@ -153,6 +178,8 @@ resource "aws_instance" "helloworld" {
     vpc_security_group_ids = ["${aws_security_group.helloworld.id}"]
     iam_instance_profile = "${aws_iam_instance_profile.helloworld.name}"
     user_data = "${data.template_file.user_data.rendered}"
+    key_name = "${aws_key_pair.helloworld.key_name}"
+    associate_public_ip_address = true
     tags {
       Name = "helloworld-${count.index}"
     }
