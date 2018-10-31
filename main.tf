@@ -1,3 +1,19 @@
+terraform {
+    required_version = "~> 0.11.10"
+}
+
+provider "template" {
+    version = "~> 1.0"
+}
+
+provider "aws" {
+    access_key = "${var.access_key}"
+    secret_key = "${var.secret_key}"
+	region = "us-east-1"
+    version = "~> 1.41"
+}
+
+#### Variables
 variable "access_key" {
     type = "string"
 }
@@ -16,17 +32,7 @@ variable "client_public_ip_address" {
     type = "list"
 }
 
-resource "aws_key_pair" "helloworld" {
-    key_name_prefix = "hello-world"
-    public_key = "${var.ssh_public_key}"
-}
-
-provider "aws" {
-    access_key = "${var.access_key}"
-    secret_key = "${var.secret_key}"
-	region = "us-east-1"
-}
-
+#### VPC
 resource "aws_vpc" "vpc" {
 	cidr_block = "10.0.0.0/16"
 	tags {
@@ -76,6 +82,7 @@ resource "aws_route_table_association" "one" {
   route_table_id = "${aws_route_table.internet_route.id}"
 }
 
+#### Security Groups
 resource "aws_security_group" "helloworld" {
     name = "Hello World"
     description = "Hello World security group"
@@ -100,6 +107,7 @@ resource "aws_security_group_rule" "ingress_ssh" {
     security_group_id = "${aws_security_group.helloworld.id}"
 }
 
+#### CloudWatch Logs
 resource "aws_cloudwatch_log_group" "helloworld" {
     name = "hello_world_docker_logs"
     retention_in_days = "7"
@@ -110,6 +118,7 @@ resource "aws_cloudwatch_log_group" "helloworld" {
 
 }
 
+#### IAM
 resource "aws_iam_instance_profile" "helloworld" {
     name = "helloworld_profile"
     role = "${aws_iam_role.helloworld.name}"
@@ -163,6 +172,7 @@ resource "aws_iam_role_policy_attachment" "helloworld" {
     policy_arn = "${aws_iam_policy.helloworld.arn}"
 }
 
+#### Instance
 data "template_file" "user_data" {
     template = "${file("user_data.sh.tpl")}"
     vars {
@@ -184,3 +194,13 @@ resource "aws_instance" "helloworld" {
       Name = "helloworld-${count.index}"
     }
 }
+
+#### Misc
+resource "aws_key_pair" "helloworld" {
+    key_name_prefix = "hello-world"
+    public_key = "${var.ssh_public_key}"
+}
+output "Open CloudWatch to see results:" {
+    value = "https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#logStream:group=hello_world_docker_logs"
+}
+
