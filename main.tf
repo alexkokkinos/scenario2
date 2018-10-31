@@ -63,12 +63,10 @@ resource "aws_route_table_association" "one" {
   route_table_id = "${aws_route_table.internet_route.id}"
 }
 
-
-
 resource "aws_security_group" "helloworld" {
     name = "Hello World"
-    description = "Hello World security group, doesn't really allow access to anything"
-    vpc_id = "aws_vpc.vpc"
+    description = "Hello World security group"
+    vpc_id = "${aws_vpc.vpc.id}"
 }
 
 resource "aws_security_group_rule" "egress_all" {
@@ -76,8 +74,8 @@ resource "aws_security_group_rule" "egress_all" {
     to_port = 65535
     protocol = -1
     type = "egress"
-    cidr_blocks = "0.0.0.0/0"
-    security_group_id = "{aws_security_group.helloworld.id}"
+    cidr_blocks = ["0.0.0.0/0"]
+    security_group_id = "${aws_security_group.helloworld.id}"
 }
 
 resource "aws_cloudwatch_log_group" "helloworld" {
@@ -95,10 +93,10 @@ resource "aws_iam_instance_profile" "helloworld" {
     role = "${aws_iam_role.helloworld.name}"
 }
 
-resource "aws_iam_role" "helloworld" {
-    name = "helloworld_role"
+resource "aws_iam_policy" "helloworld" {
+    name = "helloworld_policy"
     path = "/"
-    assume_role_policy = <<EOF
+    policy = <<EOF
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -116,8 +114,32 @@ resource "aws_iam_role" "helloworld" {
 EOF
 }
 
+resource "aws_iam_role" "helloworld" {
+    name = "helloworld_role"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "helloworld" {
+    role = "${aws_iam_role.helloworld.name}"
+    policy_arn = "${aws_iam_policy.helloworld.arn}"
+}
+
 data "template_file" "user_data" {
-    template = "${file("user_data.tpl")}"
+    template = "${file("user_data.sh.tpl")}"
     vars {
         group = "${aws_cloudwatch_log_group.helloworld.name}"
     }
