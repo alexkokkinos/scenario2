@@ -22,6 +22,7 @@ variable "secret_key" {
 }
 variable "instance_count" {
     type = "string"
+    default = "2"
 }
 
 variable "ssh_public_key" {
@@ -200,7 +201,6 @@ resource "aws_key_pair" "helloworld" {
     key_name_prefix = "hello-world"
     public_key = "${var.ssh_public_key}"
 }
-output "Open CloudWatch to see results:" {
+output "Open CloudWatch and wait/refresh to see results:" {
     value = "https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#logStream:group=hello_world_docker_logs"
 }
-
