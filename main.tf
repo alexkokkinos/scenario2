@@ -1,3 +1,13 @@
+variable "access_key" {
+    type = "string"
+}
+variable "secret_key" {
+    type = "string"
+}
+variable "instance_count" {
+    type = "string"
+}
+
 provider "aws" {
     access_key = "${var.access_key}"
     secret_key = "${var.secret_key}"
@@ -61,7 +71,14 @@ resource "aws_security_group" "helloworld" {
     vpc_id = "aws_vpc.vpc"
 }
 
-
+resource "aws_security_group_rule" "egress_all" {
+    from_port = 0
+    to_port = 65535
+    protocol = -1
+    type = "egress"
+    cidr_blocks = "0.0.0.0/0"
+    security_group_id = "{aws_security_group.helloworld.id}"
+}
 
 resource "aws_cloudwatch_log_group" "helloworld" {
     name = "hello_world_docker_logs"
@@ -75,7 +92,7 @@ resource "aws_cloudwatch_log_group" "helloworld" {
 
 resource "aws_iam_instance_profile" "helloworld" {
     name = "helloworld_profile"
-    role = "${aws_iam_role.role.helloworld}"
+    role = "${aws_iam_role.helloworld.name}"
 }
 
 resource "aws_iam_role" "helloworld" {
@@ -83,13 +100,24 @@ resource "aws_iam_role" "helloworld" {
     path = "/"
     assume_role_policy = <<EOF
 {
-    
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowCloudWatchLogsDockerHelloWorld",
+            "Effect": "Allow",
+            "Action": "logs:PutLogEvents",
+            "Resource": [
+                "${aws_cloudwatch_log_group.helloworld.arn}",
+                "arn:aws:logs:*:*:log-group:*:*:*"
+            ]
+        }
+    ]
 }
 EOF
 }
 
 data "template_file" "user_data" {
-    template = "${file(user_data.tpl)}"
+    template = "${file("user_data.tpl")}"
     vars {
         group = "${aws_cloudwatch_log_group.helloworld.name}"
     }
@@ -100,10 +128,10 @@ resource "aws_instance" "helloworld" {
     ami = "ami-0922553b7b0369273"
     instance_type = "t2.micro"
     subnet_id = "${aws_subnet.public.id}"
-    vpc_security_group_ids = ["${aws_security_group.helloworld}"]
-    iam_instance_profile = "${aws_iam_instance_profile.helloworld}"
+    vpc_security_group_ids = ["${aws_security_group.helloworld.id}"]
+    iam_instance_profile = "${aws_iam_instance_profile.helloworld.name}"
     user_data = "${data.template_file.user_data.rendered}"
     tags {
-      Name = "${var.tag_name}"
+      Name = "helloworld-${count.index}"
     }
 }
