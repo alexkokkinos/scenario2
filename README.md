@@ -3,7 +3,7 @@ Scenario 2 VPC saying Hello World with Terraform
 
 ## Purpose
 
-This project uses Terraform to build a Scenario 2 VPC, launch a number of instances, and start the Hello World docker container on each desired 
+This project uses Terraform to build a Scenario 2 VPC, launch a number of instances, and start the Hello World docker container on each desired EC2 Instance.
 
 ### AWS Account Charges Ahead!
 
@@ -11,8 +11,8 @@ By following the instructions below, you will create t2.micro instances, a VPC, 
 
 ## How to use
 
-1. Ensure your AWS IAM user has rights to create VPCs, Security Groups, IAM users/roles, CloudWatch Logs, and EC2 Instances
-1. Ensure Terraform is installed
+1. Ensure your AWS IAM user has rights to create VPCs, Security Groups, IAM users/roles, CloudWatch Logs, and EC2 Instances.
+1. Ensure Terraform 0.11.10 is installed
 1. Clone this repository's master branch
 1. In the root directory of this repository, create `terraform.tfvars` and populate it with the following information:
 
@@ -21,7 +21,7 @@ By following the instructions below, you will create t2.micro instances, a VPC, 
     secret_key = "your_iam_secret_key"
     ```
 
-1. Run the following command. **You will not be prompted if you include the `-auto-approve` flag**:
+1. Run the following command in the bash shell. **You will not be prompted if you include the `-auto-approve` flag**:
 
     ``` bash
     terraform init && terraform apply -auto-approve
@@ -33,13 +33,19 @@ By following the instructions below, you will create t2.micro instances, a VPC, 
     terraform init && terraform apply -auto-approve -var 'instance_count=#'
     ```
 
-    To satisfy a requirement to run everything in one line, you may run the following with the variable values substituted (polluting your history with your AWS IAM credentials):
+    where `#` is an integer representing the number of desired instances.
+
+    If you wish to run all of the above at once, you may run the following with the variable values substituted (polluting your history with your AWS IAM credentials):
 
     ``` bash
     terraform init && terraform apply -auto-approve -var 'instance_count=#' -var 'access_key=your_iam_access_key' -var 'secret_key=your_iam_secret_key'
     ```
 
 1. At the end of the Terraform run, the EC2 instances will be created, and they'll start the hello-world Docker container. The instances will automatically output their results to CloudWatch. Please give the instances a few seconds to run the container before [viewing the results](https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#logStream:group=hello_world_docker_logs). When clicking this link, you may be prompted to login to your AWS console if you are not logged in already (but this link is the direct link to where you need to be). 
+
+After running `terraform init` once, you do not need to run it again.
+
+This exercise stipulates a requirement to run all actions in one command. The above instructions run two commands on one shell line, and, depending on your interpretation, that could be considered a violation of the exercise. I decided against providing a single script reimplementing the commands and arguments because in a real production environment, it would be assumed that the engineer would have already run `terraform init`, and that script would add unnecessary complexity.
 
 ## Destroying the Infrastructure
 
